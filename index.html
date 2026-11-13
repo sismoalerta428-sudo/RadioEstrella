@@ -100,7 +100,11 @@
   .vol{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:12px;color:var(--muted)}
   input[type=range]{accent-color:var(--gold);width:55%;height:28px}
   /* el reproductor oficial se muestra completo y pequeño, sin tapar ni ocultar */
-  #ytBox{display:none;margin:22px auto 0;width:100%;max-width:280px;height:200px;border-radius:14px;overflow:hidden;background:#000;border:2px solid var(--line)}
+  /* marco de pantalla retro: el reproductor se ve completo (mínimo 200 px) pero queda integrado al diseño */
+  #ytBox{display:none;margin:26px auto 0;width:100%;max-width:272px;height:224px;padding:8px;border-radius:22px;overflow:hidden;
+    background:linear-gradient(160deg,#2c3274,#12163f);border:2px solid var(--line);
+    box-shadow:0 16px 34px rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.14)}
+  #ytBox iframe{border-radius:13px}
   #ytBox.on{display:block}
   #ytBox iframe{width:100%;height:100%;display:block}
 
@@ -113,6 +117,21 @@
   .cover.has img{display:block}
   .cover.has .ph{display:none}
   .playing .cover{box-shadow:0 20px 48px rgba(255,201,60,.3);transform:translateY(-2px)}
+
+  /* disco de vinilo que sale de la portada y gira mientras suena */
+  .deck{position:relative;width:min(62vw,230px);margin:20px auto 6px;transition:transform .9s cubic-bezier(.2,.8,.2,1)}
+  .deck .cover{width:100%;margin:0;position:relative;z-index:2}
+  .vinyl{position:absolute;z-index:1;top:5%;left:5%;width:90%;aspect-ratio:1;transition:transform .9s cubic-bezier(.2,.8,.2,1)}
+  .disc{position:relative;width:100%;height:100%;border-radius:50%;box-shadow:0 10px 26px rgba(0,0,0,.55);
+    background:repeating-radial-gradient(circle at center,#090912 0 2px,#181829 2px 4px)}
+  .disc::before{content:"";position:absolute;inset:0;border-radius:50%;
+    background:conic-gradient(from 20deg,rgba(255,255,255,.16),transparent 25%,rgba(255,255,255,.1) 50%,transparent 75%,rgba(255,255,255,.16))}
+  .disc::after{content:"";position:absolute;left:50%;top:50%;width:34%;height:34%;transform:translate(-50%,-50%);border-radius:50%;
+    background:radial-gradient(circle at 50% 50%,#0f1646 0 7%,transparent 8%),radial-gradient(circle at 35% 28%,var(--gold2),var(--gold) 65%,#f0a800)}
+  .playing .deck{transform:translateX(-20%)}
+  .playing .vinyl{transform:translateX(46%)}
+  .playing .disc{animation:spin 5s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
   /* tarjeta de pedido */
   .ticket{position:relative;margin:26px 0 8px;color:var(--ticket-ink);background:var(--ticket);padding:22px 20px 20px;border-radius:6px;
@@ -178,13 +197,26 @@
   .slide{background:var(--panel);border:1.5px solid var(--line);border-radius:22px;padding:30px 20px;margin-bottom:16px;min-height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .slide.anim{animation:slidein .38s ease both}
   @keyframes slidein{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
-  .slide .emo{width:104px;height:104px;border-radius:50%;display:grid;place-items:center;font-size:3.1rem;line-height:1;margin-bottom:16px;
-    background:radial-gradient(circle at 35% 28%,rgba(255,223,133,.35),rgba(255,201,60,.08) 70%);border:2px solid rgba(255,201,60,.55);box-shadow:0 0 34px rgba(255,201,60,.22)}
+  .slide{border-top:5px solid var(--sa,#ffc93c)}
+  .slide .emo,.gbox>.emo{width:104px;height:104px;border-radius:50%;display:grid;place-items:center;font-size:3.1rem;line-height:1;margin:0 auto 16px;
+    background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.22),rgba(255,255,255,.04) 70%);border:2px solid var(--sa,#ffc93c);box-shadow:0 0 36px -6px var(--sa,#ffc93c)}
+  .slide .emo{margin:0 0 16px}
+  .gbox>.emo{--sa:#6aa0ff}
+  .herodial{position:relative;height:50px;margin:0 8px 20px}
+  .hscale{position:absolute;left:0;right:0;bottom:0;height:22px;
+    background:repeating-linear-gradient(90deg,var(--muted) 0 1.5px,transparent 1.5px 10px) bottom/100% 12px no-repeat,
+               repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 50px) bottom/100% 22px no-repeat}
+  .hneedle{position:absolute;bottom:14px;left:2%;width:30px;height:30px;margin-left:-15px;color:var(--gold);filter:drop-shadow(0 0 8px rgba(255,201,60,.8));animation:scan 4.5s ease-in-out infinite alternate}
+  @keyframes scan{from{left:3%}to{left:94%}}
+  .steps li:nth-child(2)::before{background:#ff7a93}
+  .steps li:nth-child(3)::before{background:#2fd8c6}
+  .steps li:nth-child(4)::before{background:#a597ff}
+  .steps li:nth-child(5)::before{background:#74a8ff}
   .slide h3{font-family:var(--display);font-weight:700;font-size:1.3rem;margin:0 0 8px;text-wrap:balance}
   .slide p{margin:0;color:var(--muted);font-size:1.08rem}
   .dots{display:flex;gap:8px;justify-content:center;margin-bottom:18px}
   .dots i{width:9px;height:9px;border-radius:50%;background:var(--line)}
-  .dots i.on{background:var(--gold);width:24px;border-radius:6px}
+  .dots i.on{background:var(--sa,var(--gold));width:24px;border-radius:6px}
   .steps{list-style:none;margin:0 0 18px;padding:0;text-align:left;counter-reset:s}
   .steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:10px;font-size:1.02rem}
   .steps li::before{content:counter(s);flex:none;width:30px;height:30px;border-radius:50%;background:var(--gold);color:#1a1f4f;font-family:var(--display);font-weight:700;display:grid;place-items:center}
@@ -222,9 +254,12 @@
 
   <section class="stage" id="stage">
     <span class="chip live" id="liveChip"><i></i><span id="liveTxt">En vivo</span></span>
-    <div class="cover" id="cover">
-      <svg class="ph" viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,10 61,38 91,41 68,60 75,89 50,73 25,89 32,60 9,41 39,38" fill="#ffc93c"/></svg>
-      <img id="coverImg" alt="" referrerpolicy="no-referrer">
+    <div class="deck" id="deck">
+      <div class="vinyl" aria-hidden="true"><div class="disc"></div></div>
+      <div class="cover" id="cover">
+        <svg class="ph" viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,10 61,38 91,41 68,60 75,89 50,73 25,89 32,60 9,41 39,38" fill="#ffc93c"/></svg>
+        <img id="coverImg" alt="" referrerpolicy="no-referrer">
+      </div>
     </div>
     <div class="title" id="title">Toca el botón para escuchar</div>
     <div class="artist" id="artist"></div>
@@ -273,6 +308,10 @@
     <svg class="star" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="47" fill="#2f5bd8"/><polygon points="50,13 61,39 89,42 67,60 74,87 50,72 26,87 33,60 11,42 39,39" fill="#ffc93c"/></svg>
     <h2>Bienvenido a Radio Estrella</h2>
     <p>Entra para escuchar y pedir tus canciones.</p>
+    <div class="herodial" aria-hidden="true">
+      <div class="hscale"></div>
+      <svg class="hneedle" viewBox="0 0 100 100"><polygon points="50,8 61,38 92,40 68,60 76,90 50,73 24,90 32,60 8,40 39,38" fill="currentColor"/></svg>
+    </div>
     <div class="perks"><span>🎤 Pide tus canciones</span><span>🔴 Radio en vivo</span><span>🎙️ Mensajes del DJ</span></div>
     <div class="gcard">
       <label for="lgName">Tu nombre</label>
@@ -284,6 +323,7 @@
     </div>
   </div>
   <div class="gbox" id="gCode">
+    <div class="emo" aria-hidden="true">📩</div>
     <h2>Revisa tu correo</h2>
     <p id="codeHelp">Te enviamos un código. Escríbelo aquí.</p>
     <div class="gcard">
@@ -567,10 +607,10 @@ var user = load("radioEstrellaUser", null);
 var tutoFromIntro = false, slideIdx = 0;
 function phoneTxt(){ return $("phoneLink").textContent || "0997049524"; }
 function getSlides(){ return [
-  {e:"🎵", t:"Música todo el día", p:"Radio Estrella suena sin parar. Escúchala desde tu celular, donde estés."},
-  {e:"🎤", t:"Tú pides, el DJ la pone", p:"Escribe tu canción y el DJ la pone en la radio para todos, cuando le toque su turno."},
-  {e:"🎙️", t:"Mensajes de la radio", p:"Entre canciones escuchas saludos y mensajes hablados de la radio."},
-  {e:"📞", t:"Siempre cerca de ti", p:"También puedes llamarnos al " + phoneTxt() + " para pedir tu canción o tu saludo."}
+  {e:"🎵", c:"#ffc93c", t:"Música todo el día", p:"Radio Estrella suena sin parar. Escúchala desde tu celular, donde estés."},
+  {e:"🎤", c:"#ff7a93", t:"Tú pides, el DJ la pone", p:"Escribe tu canción y el DJ la pone en la radio para todos, cuando le toque su turno."},
+  {e:"🎙️", c:"#2fd8c6", t:"Mensajes de la radio", p:"Entre canciones escuchas saludos y mensajes hablados de la radio."},
+  {e:"📞", c:"#a597ff", t:"Siempre cerca de ti", p:"También puedes llamarnos al " + phoneTxt() + " para pedir tu canción o tu saludo."}
 ]; }
 var TUTO = [
   ["Toca el botón dorado", "Es el botón grande con el triángulo. Así empieza a sonar la radio."],
@@ -586,6 +626,7 @@ function showGate(id){
 function closeGate(){ $("gate").classList.remove("on"); document.body.style.overflow = ""; }
 function renderSlide(){
   var sl = getSlides(), d = sl[slideIdx];
+  $("gPromo").style.setProperty("--sa", d.c);
   $("slide").innerHTML = "";
   $("slide").classList.remove("anim"); void $("slide").offsetWidth; $("slide").classList.add("anim");
   var e = document.createElement("div"); e.className = "emo"; e.textContent = d.e;
