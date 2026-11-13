@@ -341,7 +341,6 @@ window.onYouTubeIframeAPIReady = function(){
         else if(e.data === YT.PlayerState.ENDED){ trackEnded(); }
       },
       onError:function(e){
-        if(localPlaying){ onLocalEnded(true); return; }
         var id = currentSongId, code = e && e.data;
         if(code === 100 || code === 101 || code === 150){
           // solo ese video no se puede reproducir: se avisa para que la radio pase a otro
@@ -370,89 +369,7 @@ function stopYouTube(){
   $("ytBox").classList.remove("on");
 }
 
-/* ---- CEREBRO DJ: busca canciones en el navegador, sin clave ---- */
-var localQueue = [], localPlaying = false, localCur = null, autoLeft = 0, played = {}, lastArtist = "";
-var PIPED = ["https://pipedapi.kavin.rocks","https://pipedapi.adminforge.de","https://api.piped.private.coffee"];
-var INVID = ["https://inv.nadeko.net","https://invidious.nerdvpn.net","https://yewtu.be"];
-function tfetch(url){
-  var c = new AbortController(), t = setTimeout(function(){ c.abort(); }, 6000);
-  return fetch(url, {signal:c.signal}).then(function(r){ clearTimeout(t); if(!r.ok) throw new Error("bad"); return r.json(); });
-}
-function cleanTitle(t){ return String(t||"").replace(/\s*[\(\[][^\)\]]*(official|video|lyric|audio|letra|oficial|hd|4k)[^\)\]]*[\)\]]/ig,"").trim(); }
-function splitTA(title, chan){
-  title = String(title||"");
-  var ch = String(chan||"").replace(/\s*-\s*Topic$/i,"").replace(/VEVO$/i,"").trim();
-  var i = title.indexOf(" - ");
-  if(i > 0 && i < 60) return {artist:title.slice(0,i).trim(), title:cleanTitle(title.slice(i+3))};
-  return {artist:ch, title:cleanTitle(title)};
-}
-function okLen(n){ return n >= 60 && n <= 600; }
-function searchYT(q){
-  var tries = [];
-  PIPED.forEach(function(b){ tries.push(function(){
-    return tfetch(b + "/search?q=" + encodeURIComponent(q) + "&filter=music_songs").then(function(j){
-      return (j.items||[]).filter(function(x){ return x.url && okLen(x.duration); }).map(function(x){
-        var m = /v=([\w-]{11})/.exec(x.url), ta = splitTA(x.title, x.uploaderName);
-        return {id:m && m[1], title:ta.title, artist:ta.artist, secs:x.duration};
-      }).filter(function(x){ return x.id; });
-    });
-  }); });
-  INVID.forEach(function(b){ tries.push(function(){
-    return tfetch(b + "/api/v1/search?type=video&q=" + encodeURIComponent(q + " audio")).then(function(j){
-      return (j||[]).filter(function(x){ return x.videoId && okLen(x.lengthSeconds); }).map(function(x){
-        var ta = splitTA(x.title, x.author);
-        return {id:x.videoId, title:ta.title, artist:ta.artist, secs:x.lengthSeconds};
-      });
-    });
-  }); });
-  var i = 0;
-  function next(){
-    if(i >= tries.length) return Promise.resolve([]);
-    return tries[i++]().then(function(r){ return r.length ? r : next(); }).catch(next);
-  }
-  return next();
-}
-function searchPreview(q){
-  return tfetch("https://itunes.apple.com/search?media=music&entity=song&limit=5&term=" + encodeURIComponent(q)).then(function(j){
-    return (j.results||[]).filter(function(x){ return x.previewUrl; }).map(function(x){
-      return {preview:x.previewUrl, title:x.trackName, artist:x.artistName, secs:30};
-    });
-  }).catch(function(){ return []; });
-}
-function findSongs(q){ return searchYT(q).then(function(r){ return r.length ? r : searchPreview(q); }); }
-
-function playLocal(it, why){
-  localPlaying = true; localCur = it; currentKey = null; currentSongId = null;
-  played[it.id || it.preview] = 1; if(it.artist) lastArtist = it.artist;
-  $("title").textContent = it.title; $("artist").textContent = it.artist || "";
-  $("srcWrap").innerHTML = "";
-  var c = document.createElement("span"); c.className = "chip";
-  c.textContent = why === "similar" ? "✨ El DJ sigue con algo parecido" : "🎤 Pedida por un oyente";
-  $("srcWrap").appendChild(c);
-  track = {startMs:Date.now(), endMs:Date.now() + it.secs * 1000}; tickDial();
-  if(it.id){ audio.pause(); startYouTube({youtube_video_id:it.id, position_seconds:0}); }
-  else { stopYouTube(); audio.src = it.preview; audio.play().catch(function(){ onLocalEnded(true); }); }
-  clearTimeout(timer); timer = setTimeout(sync, 5000);
-}
-function onLocalEnded(failed){
-  var it = localCur;
-  if(failed && it && it.alts && it.alts.length){
-    var a = it.alts.shift(); a.alts = it.alts; playLocal(a, it.why); return;
-  }
-  localPlaying = false; localCur = null; currentKey = null;
-  if(localQueue.length){ var n = localQueue.shift(); playLocal(n, n.why); return; }
-  if(autoLeft > 0 && lastArtist){
-    autoLeft--; localPlaying = true; $("status").textContent = "El DJ busca algo parecido...";
-    findSongs(lastArtist + " canciones").then(function(r){
-      var p = r.filter(function(x){ return !played[x.id || x.preview]; })[0];
-      if(p){ p.alts = []; p.why = "similar"; playLocal(p, "similar"); }
-      else { localPlaying = false; sync(); }
-    }).catch(function(){ localPlaying = false; sync(); });
-    return;
-  }
-  sync();
-}
-function trackEnded(){ if(localPlaying){ onLocalEnded(false); } else { currentKey = null; sync(); } }
+function trackEnded(){ currentKey = null; sync(); }
 
 /* ---- radio ---- */
 function fetchNow(){ return rpc("radio_now").then(function(r){ if(!r.ok) throw new Error("bad"); return r.json(); }); }
@@ -483,7 +400,6 @@ setInterval(function(){ if(listening) callDJ(); }, 30000);
 function sync(){
   clearTimeout(timer);
   fetchNow().then(function(n){
-    if(localPlaying){ timer = setTimeout(sync, 5000); return; }
     callDJ();
     if(!n){
       $("title").textContent = "Pronto empezamos";
@@ -495,8 +411,6 @@ function sync(){
     showSong(n);
     var key = n.kind + ":" + (n.song_id || n.voice_id) + ":" + n.started_at;
     var msLeft = Math.max(3000, new Date(n.ends_at).getTime() - new Date(n.server_time).getTime());
-    if(listening && key !== currentKey && key === badKey && !localQueue.length){ $("status").textContent = $("status").textContent || "Esperando la siguiente canción..."; }
-    if(listening && key !== currentKey && localQueue.length){ var q = localQueue.shift(); playLocal(q, q.why); return; }
     if(listening && key !== currentKey && key !== badKey){
       currentKey = key;
       currentSongId = n.song_id || null;
@@ -527,13 +441,13 @@ function sync(){
 
 $("playBtn").onclick = function(){
   if(listening){
-    listening = false; localPlaying = false;
+    listening = false;
     clearTimeout(timer);
     audio.pause();
     try{ if(ytReady && yt) yt.pauseVideo(); }catch(e){}
     currentKey = null;
     setPlayingUI(false);
-    $("status").textContent = "En pausa";
+    $("status").textContent = "En pausa. Al volver entras en vivo, justo donde va la radio.";
   } else {
     listening = true;
     currentKey = null;
@@ -547,7 +461,6 @@ audio.addEventListener("waiting", function(){ $("status").textContent = "Cargand
 audio.addEventListener("ended", trackEnded);
 audio.addEventListener("error", function(){
   if(!listening || !audio.getAttribute("src")) return;
-  if(localPlaying){ onLocalEnded(true); return; }
   $("status").textContent = "Esta canción no carga. Pasamos a otra.";
   setTimeout(function(){ currentKey = null; sync(); }, 4000);
 });
@@ -566,24 +479,16 @@ $("sendBtn").onclick = function(){
   var msg = $("reqMsg");
   if(song.length < 2){ msg.className = "msg err"; msg.textContent = "Escribe la canción que quieres escuchar."; return; }
   $("sendBtn").disabled = true;
-  msg.className = "msg"; msg.textContent = "El DJ está buscando tu canción...";
-  // se guarda el pedido para el panel de administrador (no bloquea)
+  msg.className = "msg"; msg.textContent = "Enviando tu pedido...";
+  // el pedido entra a la cola de la radio: suena para todos cuando le toque, como en una radio de verdad
   api("/rest/v1/song_requests", {method:"POST", headers:{"Prefer":"return=minimal"}, body: JSON.stringify({follower_name: name || null, song_text: song})})
-    .then(function(){ lastDJ = 0; callDJ(); }).catch(function(){});
-  findSongs(song).then(function(r){
-    if(!r.length){ msg.className = "msg err"; msg.textContent = "No encontré esa canción. Prueba con otro nombre o con el artista."; return; }
-    var it = r[0]; it.alts = r.slice(1, 4); it.why = "pedido";
-    $("reqSong").value = ""; autoLeft = 3;
-    if(!listening || (!localPlaying && !$("stage").classList.contains("playing"))){
-      listening = true; playLocal(it, "pedido");
-      msg.className = "msg ok"; msg.textContent = "Suena: " + it.title;
-    } else {
-      localQueue.push(it);
-      msg.className = "msg ok"; msg.textContent = "Listo: " + it.title + ". Suena después de la canción actual.";
-    }
-  }).catch(function(){
-    msg.className = "msg err"; msg.textContent = "No se pudo buscar ahora. Intenta otra vez.";
-  }).then(function(){ $("sendBtn").disabled = false; });
+    .then(function(){
+      $("reqSong").value = "";
+      msg.className = "msg ok"; msg.textContent = "✅ Pedido enviado. El DJ lo pondrá en la radio. ¡Sigue escuchando!";
+      lastDJ = 0; callDJ();
+    }).catch(function(){
+      msg.className = "msg err"; msg.textContent = "No se pudo enviar el pedido. Intenta otra vez.";
+    }).then(function(){ $("sendBtn").disabled = false; });
 };
 
 if(location.protocol === "file:"){ $("fileWarn").style.display = "block"; }
@@ -595,14 +500,14 @@ var tutoFromIntro = false, slideIdx = 0;
 function phoneTxt(){ return $("phoneLink").textContent || "0997049524"; }
 function getSlides(){ return [
   {e:"🎵", t:"Música todo el día", p:"Radio Estrella suena sin parar. Escúchala desde tu celular, donde estés."},
-  {e:"🎤", t:"Tú pides, el DJ la pone", p:"Escribe tu canción y el DJ la busca y la pone. Después sigue con algo parecido."},
+  {e:"🎤", t:"Tú pides, el DJ la pone", p:"Escribe tu canción y el DJ la pone en la radio para todos, cuando le toque su turno."},
   {e:"🎙️", t:"Mensajes de la radio", p:"Entre canciones escuchas saludos y mensajes hablados de la radio."},
   {e:"📞", t:"Siempre cerca de ti", p:"También puedes llamarnos al " + phoneTxt() + " para pedir tu canción o tu saludo."}
 ]; }
 var TUTO = [
   ["Toca el botón dorado", "Es el botón grande con el triángulo. Así empieza a sonar la radio."],
   ["Mira el dial", "La estrella dorada avanza mientras suena la canción. Abajo ves el título y el artista."],
-  ["Pide tu canción", "Escribe el nombre y el artista, y toca “Enviar pedido”. El DJ la busca y la pone."],
+  ["Pide tu canción", "Escribe el nombre y el artista, y toca “Enviar pedido”. El DJ la pone en la radio cuando le toque."],
   ["Ajusta a tu gusto", "Usa la barra del volumen. El botón ☀️ o 🌙 cambia entre día y noche."],
   ["Deja la pantalla encendida", "En el celular, si apagas la pantalla el sonido de YouTube se puede cortar."]
 ];
