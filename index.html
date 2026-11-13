@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radio Estrella</title>
+<meta name="theme-color" content="#0f1646">
+<meta name="author" content="Luis García"><meta name="copyright" content="© 2026 Luis García. Todos los derechos reservados.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Radio Estrella">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&family=Unbounded:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky:#0f1646; --sky2:#1b2470; --ink:#f6f3ff; --muted:#aab2ea;
+    --gold:#ffc93c; --gold2:#ffdf85; --red:#e63a46; --blue:#2f5bd8;
+    --panel:rgba(255,255,255,.07); --line:rgba(255,255,255,.16);
+    --ticket:#fff6dc; --ticket-ink:#1a1f4f;
+    --display:"Unbounded","Arial Rounded MT Bold",system-ui,sans-serif;
+    --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  body.day{
+    --sky:#d9e8ff; --sky2:#f3f8ff; --ink:#14185a; --muted:#4b5499;
+    --panel:rgba(255,255,255,.75); --line:rgba(20,24,90,.18);
+    --ticket:#ffffff;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;min-height:100vh;font-family:var(--body);color:var(--ink);
+    background:radial-gradient(120% 70% at 50% 0%,var(--sky2) 0%,var(--sky) 62%) fixed;line-height:1.45}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.55;
+    background-image:radial-gradient(1.5px 1.5px at 12% 18%,#fff 50%,transparent 51%),
+      radial-gradient(1px 1px at 78% 9%,#fff 50%,transparent 51%),
+      radial-gradient(1.5px 1.5px at 90% 36%,#fff 50%,transparent 51%),
+      radial-gradient(1px 1px at 30% 44%,#fff 50%,transparent 51%),
+      radial-gradient(1px 1px at 62% 28%,#fff 50%,transparent 51%),
+      radial-gradient(1.5px 1.5px at 6% 70%,#fff 50%,transparent 51%);}
+  body.day::before{opacity:0}
+  .flag{height:6px;background:linear-gradient(90deg,var(--gold) 0 50%,var(--blue) 50% 75%,var(--red) 75%)}
+  .wrap{position:relative;max-width:520px;margin:0 auto;padding:18px 18px 40px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0 18px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand h1{margin:0;font-family:var(--display);font-weight:900;font-size:1.45rem;letter-spacing:-.01em;line-height:1}
+  .brand small{display:block;margin-top:5px;color:var(--muted);font-size:.9rem}
+  .star{width:48px;height:48px;flex:none}
+  .logo.on .star{animation:twinkle 2.4s ease-in-out infinite}
+  @keyframes twinkle{0%,100%{transform:rotate(0) scale(1)}50%{transform:rotate(12deg) scale(1.1)}}
+  .theme{flex:none;width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line);background:var(--panel);color:var(--ink);font-size:1.15rem;cursor:pointer}
+
+  /* dial */
+  .dial{position:relative;margin:4px 0 8px;padding:34px 6px 0}
+  .scale{position:relative;height:34px;border-radius:6px;
+    background:
+      repeating-linear-gradient(90deg,var(--muted) 0 1.5px,transparent 1.5px 10px) bottom/100% 12px no-repeat,
+      repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 50px) bottom/100% 22px no-repeat;
+    opacity:.9}
+  .needle{position:absolute;top:0;left:6px;width:34px;height:34px;margin-left:-17px;transform:translateX(0);
+    transition:left 1s linear;color:var(--gold);filter:drop-shadow(0 0 10px rgba(255,201,60,.7))}
+  .needle svg{width:100%;height:100%}
+  .times{display:flex;justify-content:space-between;color:var(--muted);font-size:.8rem;margin-top:6px;font-variant-numeric:tabular-nums}
+
+  /* reproductor */
+  .stage{text-align:center;padding:18px 8px 6px}
+  .chip{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 13px;font-size:.88rem;color:var(--ink)}
+  .chip i{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 0 0 rgba(230,58,70,.6)}
+  .live.on i{animation:ping 1.6s infinite}
+  @keyframes ping{70%{box-shadow:0 0 0 9px rgba(230,58,70,0)}100%{box-shadow:0 0 0 0 rgba(230,58,70,0)}}
+  .title{font-family:var(--display);font-weight:700;font-size:clamp(1.35rem,6.4vw,1.85rem);line-height:1.15;margin:16px 4px 6px;word-break:break-word;text-wrap:balance}
+  .artist{color:var(--muted);font-size:1.05rem;min-height:1.4em}
+  .source{margin-top:12px;min-height:34px}
+
+  .playwrap{position:relative;width:172px;height:172px;margin:22px auto 10px;display:grid;place-items:center}
+  .ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--gold);opacity:0}
+  .playing .ring{animation:ripple 2.4s ease-out infinite}
+  .playing .ring.r2{animation-delay:1.2s}
+  @keyframes ripple{0%{transform:scale(.62);opacity:.7}100%{transform:scale(1.12);opacity:0}}
+  .playbtn{position:relative;width:118px;height:118px;border-radius:50%;border:none;cursor:pointer;color:#1a1f4f;
+    background:radial-gradient(circle at 35% 28%,var(--gold2),var(--gold) 60%,#f0a800);
+    box-shadow:0 10px 0 #b97f00,0 22px 36px rgba(0,0,0,.35);display:grid;place-items:center;transition:transform .12s,box-shadow .12s}
+  .playbtn:active{transform:translateY(6px);box-shadow:0 4px 0 #b97f00,0 10px 20px rgba(0,0,0,.35)}
+  .playbtn svg{width:46px;height:46px}
+  .eq{display:flex;gap:4px;align-items:flex-end;justify-content:center;height:26px;margin:10px 0 2px;opacity:0;transition:opacity .3s}
+  .playing .eq{opacity:1}
+  .eq b{width:5px;border-radius:3px;background:var(--gold);height:6px}
+  .playing .eq b{animation:bar 1s ease-in-out infinite}
+  .eq b:nth-child(2){animation-delay:.15s!important}.eq b:nth-child(3){animation-delay:.3s!important}
+  .eq b:nth-child(4){animation-delay:.45s!important}.eq b:nth-child(5){animation-delay:.6s!important}
+  @keyframes bar{0%,100%{height:5px}50%{height:24px}}
+  .status{color:var(--muted);font-size:.95rem;min-height:1.4em}
+  .vol{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:12px;color:var(--muted)}
+  input[type=range]{accent-color:var(--gold);width:55%;height:28px}
+  #ytBox{display:none;margin:18px auto 0;width:100%;max-width:340px;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#000;border:2px solid var(--line)}
+  #ytBox.on{display:block}
+  #ytBox iframe{width:100%;height:100%}
+
+  /* tarjeta de pedido */
+  .ticket{position:relative;margin:26px 0 8px;color:var(--ticket-ink);background:var(--ticket);padding:22px 20px 20px;border-radius:6px;
+    -webkit-mask:radial-gradient(circle 11px at 0 50%,transparent 98%,#000) left/51% 100% no-repeat,radial-gradient(circle 11px at 100% 50%,transparent 98%,#000) right/51% 100% no-repeat;
+            mask:radial-gradient(circle 11px at 0 50%,transparent 98%,#000) left/51% 100% no-repeat,radial-gradient(circle 11px at 100% 50%,transparent 98%,#000) right/51% 100% no-repeat}
+  .ticket h2{margin:0 0 4px;font-family:var(--display);font-weight:700;font-size:1.2rem;line-height:1.2}
+  .ticket p{margin:0 0 14px;color:#4a4f8a;font-size:.98rem}
+  .ticket label{display:block;font-weight:800;font-size:.92rem;margin-bottom:4px}
+  .ticket input{width:100%;padding:13px 14px;border-radius:12px;border:2px solid #cdd3f5;background:#fff;color:#1a1f4f;font:inherit;font-size:1.05rem;margin-bottom:12px}
+  .ticket input:focus{outline:3px solid var(--gold);border-color:#1a1f4f}
+  .send{width:100%;padding:15px;border:none;border-radius:14px;background:#1a1f4f;color:#fff;font:inherit;font-weight:800;font-size:1.08rem;cursor:pointer}
+  .send:disabled{opacity:.6}
+  .msg{margin-top:12px;font-size:.98rem;min-height:1.4em}
+  .msg.ok{color:#0b7a46;font-weight:600}.msg.err{color:#c1202d;font-weight:600}
+
+  footer{text-align:center;margin-top:26px;color:var(--muted);font-size:.95rem}
+  .phone{display:inline-block;margin-top:8px;padding:12px 22px;border-radius:999px;background:var(--panel);border:1.5px solid var(--line);color:var(--ink);text-decoration:none;font-family:var(--display);font-weight:700;font-size:1.15rem}
+  .credit{margin-top:18px;font-size:.78rem;line-height:1.5}
+  .credit a{color:var(--gold)}
+  .fileWarn{display:none;margin:0 0 10px;padding:12px 14px;border-radius:14px;background:#ffefc2;color:#5a3b00;font-weight:600;font-size:.95rem;border:2px solid var(--gold)}
+  body.day .credit a{color:var(--blue)}
+  :focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* inicio de sesion, beneficios y tutorial */
+  #gate{display:none;position:fixed;inset:0;z-index:100;overflow:auto;-webkit-overflow-scrolling:touch;
+    background:radial-gradient(120% 70% at 50% 0%,var(--sky2) 0%,var(--sky) 62%)}
+  #gate.on{display:block}
+  .gbox{max-width:440px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;justify-content:center;padding:28px 22px 34px;text-align:center}
+  .gbox .star{width:72px;height:72px;margin:0 auto 10px;display:block}
+  .gbox h2{font-family:var(--display);font-weight:900;font-size:1.6rem;line-height:1.15;margin:6px 0 8px;text-wrap:balance}
+  .gbox p{color:var(--muted);font-size:1.05rem;margin:0 0 18px}
+  .gcard{background:var(--panel);border:1.5px solid var(--line);border-radius:18px;padding:20px 18px;text-align:left}
+  .gcard label{display:block;font-weight:800;font-size:.92rem;margin:0 0 4px}
+  .gcard input{width:100%;padding:13px 14px;border-radius:12px;border:2px solid var(--line);background:#fff;color:#1a1f4f;font:inherit;font-size:1.05rem;margin-bottom:12px}
+  .gcard input:focus{outline:3px solid var(--gold);border-color:#1a1f4f}
+  .gerr{min-height:1.3em;color:#ff8d96;font-weight:600;margin-bottom:8px}
+  body.day .gerr{color:#c1202d}
+  .gbtn{width:100%;padding:15px;border:none;border-radius:14px;background:var(--gold);color:#1a1f4f;font:inherit;font-weight:800;font-size:1.08rem;cursor:pointer;box-shadow:0 5px 0 #b97f00}
+  .gbtn:active{transform:translateY(3px);box-shadow:0 2px 0 #b97f00}
+  .glink{display:inline-block;margin-top:14px;background:none;border:none;color:var(--muted);font:inherit;font-size:1rem;text-decoration:underline;cursor:pointer;padding:8px}
+  .slide{background:var(--panel);border:1.5px solid var(--line);border-radius:22px;padding:30px 20px;margin-bottom:16px;min-height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .slide .emo{font-size:3.4rem;line-height:1;margin-bottom:12px}
+  .slide h3{font-family:var(--display);font-weight:700;font-size:1.3rem;margin:0 0 8px;text-wrap:balance}
+  .slide p{margin:0;color:var(--muted);font-size:1.08rem}
+  .dots{display:flex;gap:8px;justify-content:center;margin-bottom:18px}
+  .dots i{width:9px;height:9px;border-radius:50%;background:var(--line)}
+  .dots i.on{background:var(--gold);width:24px;border-radius:6px}
+  .steps{list-style:none;margin:0 0 18px;padding:0;text-align:left;counter-reset:s}
+  .steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:10px;font-size:1.02rem}
+  .steps li::before{content:counter(s);flex:none;width:30px;height:30px;border-radius:50%;background:var(--gold);color:#1a1f4f;font-family:var(--display);font-weight:700;display:grid;place-items:center}
+  .steps b{display:block}
+  .steps span{color:var(--muted);font-size:.95rem}
+  .hdrbtns{display:flex;gap:8px}
+  .theme.help{font-family:var(--display);font-weight:700}
+</style>
+</head>
+<body>
+<div class="flag"></div>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo" id="logo">
+        <svg class="star" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="47" fill="#2f5bd8"/>
+          <polygon points="50,13 61,39 89,42 67,60 74,87 50,72 26,87 33,60 11,42 39,39" fill="#ffc93c"/>
+        </svg>
+      </div>
+      <div><h1 id="stName">Radio Estrella</h1><small id="stTag">Música todo el día</small></div>
+    </div>
+    <div class="hdrbtns"><button class="theme help" id="helpBtn" aria-label="Ver el tutorial">?</button><button class="theme" id="themeBtn" aria-label="Cambiar entre noche y día">☀️</button></div>
+  </header>
+
+  <div class="fileWarn" id="fileWarn" role="alert">⚠️ Abriste la radio desde un archivo del computador. Así YouTube no puede sonar (error 153). Sube este archivo a un enlace https, por ejemplo con Netlify Drop, y ábrelo desde ahí.</div>
+
+  <div class="dial" aria-hidden="true">
+    <div class="scale"></div>
+    <div class="needle" id="needle">
+      <svg viewBox="0 0 100 100"><polygon points="50,8 61,38 92,40 68,60 76,90 50,73 24,90 32,60 8,40 39,38" fill="currentColor"/></svg>
+    </div>
+    <div class="times"><span id="tNow">0:00</span><span id="tEnd">0:00</span></div>
+  </div>
+
+  <section class="stage" id="stage">
+    <span class="chip live" id="liveChip"><i></i><span id="liveTxt">En vivo</span></span>
+    <div class="title" id="title">Toca el botón para escuchar</div>
+    <div class="artist" id="artist"></div>
+    <div class="source" id="srcWrap"></div>
+    <div id="ytBox"><div id="ytPlayer"></div></div>
+
+    <div class="playwrap">
+      <span class="ring"></span><span class="ring r2"></span>
+      <button class="playbtn" id="playBtn" aria-label="Escuchar">
+        <svg id="icoPlay" viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z" fill="currentColor"/></svg>
+        <svg id="icoPause" viewBox="0 0 24 24" style="display:none"><path d="M6 4.5h4.2v15H6zM13.8 4.5H18v15h-4.2z" fill="currentColor"/></svg>
+      </button>
+    </div>
+    <div class="eq" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b></div>
+    <div class="status" id="status" role="status"></div>
+    <div class="vol"><span aria-hidden="true">🔈</span><input type="range" id="vol" min="0" max="1" step="0.01" value="0.8" aria-label="Volumen"><span aria-hidden="true">🔊</span></div>
+  </section>
+
+  <section class="ticket">
+    <h2>Pide tu canción</h2>
+    <p>Escribe el nombre y el artista. La radio la busca y la pone.</p>
+    <label for="reqName">Tu nombre</label>
+    <input type="text" id="reqName" maxlength="60" placeholder="Opcional">
+    <label for="reqSong">Canción y artista</label>
+    <input type="text" id="reqSong" maxlength="200" placeholder="Ej: Vivir mi vida, Marc Anthony">
+    <button class="send" id="sendBtn">Enviar pedido</button>
+    <div class="msg" id="reqMsg" role="status"></div>
+  </section>
+
+  <footer>
+    También puedes llamarnos
+    <br><a class="phone" id="phoneLink" href="tel:0997049524">0997049524</a>
+    <div class="credit"><span id="userName"></span> · <a href="#" id="logoutLink">Cerrar sesión</a></div>
+    <div class="credit">Música libre de Kevin MacLeod (<a href="https://incompetech.com">incompetech.com</a>), licencia CC BY 4.0.<br>Las demás canciones suenan en el reproductor oficial de YouTube.</div>
+  </footer>
+</div>
+
+<div id="gate" role="dialog" aria-modal="true" aria-label="Radio Estrella">
+  <div class="gbox" id="gLogin">
+    <svg class="star" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="47" fill="#2f5bd8"/><polygon points="50,13 61,39 89,42 67,60 74,87 50,72 26,87 33,60 11,42 39,39" fill="#ffc93c"/></svg>
+    <h2>Bienvenido a Radio Estrella</h2>
+    <p>Entra para escuchar y pedir tus canciones.</p>
+    <div class="gcard">
+      <label for="lgName">Tu nombre</label>
+      <input type="text" id="lgName" maxlength="60" autocomplete="given-name" placeholder="Ej: Luis">
+      <label for="lgMail">Tu correo</label>
+      <input type="email" id="lgMail" maxlength="120" autocomplete="email" placeholder="tucorreo@gmail.com">
+      <div class="gerr" id="lgErr" role="alert"></div>
+      <button class="gbtn" id="lgGo">Enviar código a mi correo</button>
+    </div>
+  </div>
+  <div class="gbox" id="gCode">
+    <h2>Revisa tu correo</h2>
+    <p id="codeHelp">Te enviamos un código. Escríbelo aquí.</p>
+    <div class="gcard">
+      <label for="lgCode">Código</label>
+      <input type="text" id="lgCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="123456">
+      <div class="gerr" id="cdErr" role="alert"></div>
+      <button class="gbtn" id="cdGo">Entrar</button>
+    </div>
+    <button class="glink" id="cdResend">Reenviar código</button>
+    <button class="glink" id="cdBack">Cambiar correo</button>
+  </div>
+  <div class="gbox" id="gPromo">
+    <div class="slide" id="slide"></div>
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <button class="gbtn" id="pNext">Siguiente</button>
+    <button class="glink" id="pSkip">Saltar</button>
+  </div>
+  <div class="gbox" id="gTuto">
+    <h2>Así se usa la radio</h2>
+    <p>Son 5 pasos muy fáciles.</p>
+    <ol class="steps" id="steps"></ol>
+    <button class="gbtn" id="tGo">¡Empezar a escuchar!</button>
+  </div>
+</div>
+
+<audio id="audio" preload="auto"></audio>
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+var SUPABASE_URL = "https://jgczlsmvagbghuoghqkq.supabase.co";
+var SUPABASE_KEY = "sb_publishable__Vuf5h0G0_2fUXgeYyPxXg_jJDhdY3H";
+
+var audio = document.getElementById("audio");
+var listening = false, timer = null, currentKey = null, currentSongId = null;
+var yt = null, ytReady = false, ytPending = null;
+var volume = 0.8, lastDJ = 0;
+var badKey = null;
+var track = null; // {startMs, endMs} para la aguja del dial
+
+function $(id){ return document.getElementById(id); }
+function load(k, d){ try{ var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+var day = load("radioEstrellaDay", false);
+function applyTheme(){ document.body.classList.toggle("day", day); $("themeBtn").textContent = day ? "🌙" : "☀️"; }
+$("themeBtn").onclick = function(){ day = !day; save("radioEstrellaDay", day); applyTheme(); };
+applyTheme();
+
+function api(path, opts){
+  opts = opts || {};
+  opts.headers = Object.assign({"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json"}, opts.headers || {});
+  return fetch(SUPABASE_URL + path, opts);
+}
+function rpc(name, body){ return api("/rest/v1/rpc/" + name, {method:"POST", body: JSON.stringify(body || {})}); }
+
+function loadSettings(){
+  api("/rest/v1/station_settings?select=station_name,tagline,contact_phone&id=eq.1")
+    .then(function(r){ return r.json(); })
+    .then(function(rows){
+      if(!rows || !rows[0]) return;
+      var s = rows[0];
+      if(s.station_name) $("stName").textContent = s.station_name;
+      if(s.tagline) $("stTag").textContent = s.tagline;
+      if(s.contact_phone){
+        $("phoneLink").textContent = s.contact_phone;
+        $("phoneLink").href = "tel:" + s.contact_phone.replace(/[^0-9+]/g, "");
+      }
+    }).catch(function(){});
+}
+
+var SOURCE_TXT = {pedido:"🎤 Pedida por un oyente", similar:"✨ Parecida a la anterior", aleatoria:"🎶 Selección de la radio", voz:"🎙️ Mensaje de la radio"};
+
+function setPlayingUI(on){
+  $("stage").classList.toggle("playing", on);
+  $("logo").classList.toggle("on", on);
+  $("liveChip").classList.toggle("on", on);
+  $("icoPlay").style.display = on ? "none" : "block";
+  $("icoPause").style.display = on ? "block" : "none";
+  $("playBtn").setAttribute("aria-label", on ? "Pausar" : "Escuchar");
+}
+
+/* ---- dial ---- */
+function fmt(sec){ sec = Math.max(0, Math.round(sec)); var m = Math.floor(sec/60), r = sec % 60; return m + ":" + (r<10?"0":"") + r; }
+function tickDial(){
+  var scale = document.querySelector(".scale");
+  if(!track){ $("needle").style.left = "6px"; $("tNow").textContent = "0:00"; $("tEnd").textContent = "0:00"; return; }
+  var now = Date.now(), total = track.endMs - track.startMs;
+  var done = Math.min(Math.max(now - track.startMs, 0), total);
+  var w = scale.clientWidth;
+  $("needle").style.left = (6 + (total ? done / total : 0) * w) + "px";
+  $("tNow").textContent = fmt(done/1000);
+  $("tEnd").textContent = fmt(total/1000);
+}
+setInterval(tickDial, 1000);
+window.addEventListener("resize", tickDial);
+
+/* ---- YouTube ---- */
+window.onYouTubeIframeAPIReady = function(){
+  yt = new YT.Player("ytPlayer", {
+    width:"100%", height:"100%",
+    playerVars:{autoplay:1, controls:0, playsinline:1, rel:0, modestbranding:1, disablekb:1},
+    events:{
+      onReady:function(){ ytReady = true; yt.setVolume(Math.round(volume*100)); if(ytPending){ var p = ytPending; ytPending = null; startYouTube(p); } },
+      onStateChange:function(e){
+        if(e.data === YT.PlayerState.PLAYING){ setPlayingUI(true); $("status").textContent = "Sonando ahora"; }
+        else if(e.data === YT.PlayerState.BUFFERING){ $("status").textContent = "Cargando..."; }
+        else if(e.data === YT.PlayerState.ENDED){ trackEnded(); }
+      },
+      onError:function(e){
+        if(localPlaying){ onLocalEnded(true); return; }
+        var id = currentSongId, code = e && e.data;
+        if(code === 100 || code === 101 || code === 150){
+          // solo ese video no se puede reproducir: se avisa para que la radio pase a otro
+          $("status").textContent = "Ese video no se puede reproducir. Pasamos a otra canción.";
+          if(id){ rpc("report_song_error", {p_song_id:id}).catch(function(){}); }
+        } else {
+          // error de configuración (153, archivo local, red): la canción NO se apaga
+          $("status").textContent = location.protocol === "file:"
+            ? "YouTube no funciona desde un archivo. Abre la radio desde un enlace https."
+            : "YouTube no pudo cargar. Reintentando en un momento...";
+        }
+        badKey = currentKey; currentKey = null;
+        setTimeout(sync, 8000);
+      }
+    }
+  });
+};
+function startYouTube(n){
+  $("ytBox").classList.add("on");
+  if(!ytReady){ ytPending = n; $("status").textContent = "Cargando YouTube..."; return; }
+  yt.loadVideoById({videoId:n.youtube_video_id, startSeconds:n.position_seconds || 0});
+  yt.setVolume(Math.round(volume*100));
+}
+function stopYouTube(){
+  try{ if(ytReady && yt && yt.stopVideo) yt.stopVideo(); }catch(e){}
+  $("ytBox").classList.remove("on");
+}
+
+/* ---- CEREBRO DJ: busca canciones en el navegador, sin clave ---- */
+var localQueue = [], localPlaying = false, localCur = null, autoLeft = 0, played = {}, lastArtist = "";
+var PIPED = ["https://pipedapi.kavin.rocks","https://pipedapi.adminforge.de","https://api.piped.private.coffee"];
+var INVID = ["https://inv.nadeko.net","https://invidious.nerdvpn.net","https://yewtu.be"];
+function tfetch(url){
+  var c = new AbortController(), t = setTimeout(function(){ c.abort(); }, 6000);
+  return fetch(url, {signal:c.signal}).then(function(r){ clearTimeout(t); if(!r.ok) throw new Error("bad"); return r.json(); });
+}
+function cleanTitle(t){ return String(t||"").replace(/\s*[\(\[][^\)\]]*(official|video|lyric|audio|letra|oficial|hd|4k)[^\)\]]*[\)\]]/ig,"").trim(); }
+function splitTA(title, chan){
+  title = String(title||"");
+  var ch = String(chan||"").replace(/\s*-\s*Topic$/i,"").replace(/VEVO$/i,"").trim();
+  var i = title.indexOf(" - ");
+  if(i > 0 && i < 60) return {artist:title.slice(0,i).trim(), title:cleanTitle(title.slice(i+3))};
+  return {artist:ch, title:cleanTitle(title)};
+}
+function okLen(n){ return n >= 60 && n <= 600; }
+function searchYT(q){
+  var tries = [];
+  PIPED.forEach(function(b){ tries.push(function(){
+    return tfetch(b + "/search?q=" + encodeURIComponent(q) + "&filter=music_songs").then(function(j){
+      return (j.items||[]).filter(function(x){ return x.url && okLen(x.duration); }).map(function(x){
+        var m = /v=([\w-]{11})/.exec(x.url), ta = splitTA(x.title, x.uploaderName);
+        return {id:m && m[1], title:ta.title, artist:ta.artist, secs:x.duration};
+      }).filter(function(x){ return x.id; });
+    });
+  }); });
+  INVID.forEach(function(b){ tries.push(function(){
+    return tfetch(b + "/api/v1/search?type=video&q=" + encodeURIComponent(q + " audio")).then(function(j){
+      return (j||[]).filter(function(x){ return x.videoId && okLen(x.lengthSeconds); }).map(function(x){
+        var ta = splitTA(x.title, x.author);
+        return {id:x.videoId, title:ta.title, artist:ta.artist, secs:x.lengthSeconds};
+      });
+    });
+  }); });
+  var i = 0;
+  function next(){
+    if(i >= tries.length) return Promise.resolve([]);
+    return tries[i++]().then(function(r){ return r.length ? r : next(); }).catch(next);
+  }
+  return next();
+}
+function searchPreview(q){
+  return tfetch("https://itunes.apple.com/search?media=music&entity=song&limit=5&term=" + encodeURIComponent(q)).then(function(j){
+    return (j.results||[]).filter(function(x){ return x.previewUrl; }).map(function(x){
+      return {preview:x.previewUrl, title:x.trackName, artist:x.artistName, secs:30};
+    });
+  }).catch(function(){ return []; });
+}
+function findSongs(q){ return searchYT(q).then(function(r){ return r.length ? r : searchPreview(q); }); }
+
+function playLocal(it, why){
+  localPlaying = true; localCur = it; currentKey = null; currentSongId = null;
+  played[it.id || it.preview] = 1; if(it.artist) lastArtist = it.artist;
+  $("title").textContent = it.title; $("artist").textContent = it.artist || "";
+  $("srcWrap").innerHTML = "";
+  var c = document.createElement("span"); c.className = "chip";
+  c.textContent = why === "similar" ? "✨ El DJ sigue con algo parecido" : "🎤 Pedida por un oyente";
+  $("srcWrap").appendChild(c);
+  track = {startMs:Date.now(), endMs:Date.now() + it.secs * 1000}; tickDial();
+  if(it.id){ audio.pause(); startYouTube({youtube_video_id:it.id, position_seconds:0}); }
+  else { stopYouTube(); audio.src = it.preview; audio.play().catch(function(){ onLocalEnded(true); }); }
+  clearTimeout(timer); timer = setTimeout(sync, 5000);
+}
+function onLocalEnded(failed){
+  var it = localCur;
+  if(failed && it && it.alts && it.alts.length){
+    var a = it.alts.shift(); a.alts = it.alts; playLocal(a, it.why); return;
+  }
+  localPlaying = false; localCur = null; currentKey = null;
+  if(localQueue.length){ var n = localQueue.shift(); playLocal(n, n.why); return; }
+  if(autoLeft > 0 && lastArtist){
+    autoLeft--; localPlaying = true; $("status").textContent = "El DJ busca algo parecido...";
+    findSongs(lastArtist + " canciones").then(function(r){
+      var p = r.filter(function(x){ return !played[x.id || x.preview]; })[0];
+      if(p){ p.alts = []; p.why = "similar"; playLocal(p, "similar"); }
+      else { localPlaying = false; sync(); }
+    }).catch(function(){ localPlaying = false; sync(); });
+    return;
+  }
+  sync();
+}
+function trackEnded(){ if(localPlaying){ onLocalEnded(false); } else { currentKey = null; sync(); } }
+
+/* ---- radio ---- */
+function fetchNow(){ return rpc("radio_now").then(function(r){ if(!r.ok) throw new Error("bad"); return r.json(); }); }
+
+function showSong(n){
+  $("title").textContent = n.title;
+  $("artist").textContent = n.artist || "";
+  $("srcWrap").innerHTML = "";
+  if(SOURCE_TXT[n.source]){
+    var s = document.createElement("span"); s.className = "chip"; s.textContent = SOURCE_TXT[n.source];
+    $("srcWrap").appendChild(s);
+  }
+  var off = new Date(n.server_time).getTime() - Date.now();
+  track = {startMs: new Date(n.started_at).getTime() - off, endMs: new Date(n.ends_at).getTime() - off};
+  tickDial();
+}
+
+function callDJ(){
+  var now = Date.now();
+  if(now - lastDJ < 20000) return;
+  lastDJ = now;
+  fetch(SUPABASE_URL + "/functions/v1/dj", {method:"POST", headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"}, body:"{}"}).catch(function(){});
+}
+
+// el cerebro trabaja mientras la cancion suena: cada 30 s prepara las siguientes
+setInterval(function(){ if(listening) callDJ(); }, 30000);
+
+function sync(){
+  clearTimeout(timer);
+  fetchNow().then(function(n){
+    if(localPlaying){ timer = setTimeout(sync, 5000); return; }
+    callDJ();
+    if(!n){
+      $("title").textContent = "Pronto empezamos";
+      $("artist").textContent = "Todavía no hay canciones disponibles";
+      track = null; tickDial();
+      timer = setTimeout(sync, 15000);
+      return;
+    }
+    showSong(n);
+    var key = n.kind + ":" + (n.song_id || n.voice_id) + ":" + n.started_at;
+    var msLeft = Math.max(3000, new Date(n.ends_at).getTime() - new Date(n.server_time).getTime());
+    if(listening && key !== currentKey && key === badKey && !localQueue.length){ $("status").textContent = $("status").textContent || "Esperando la siguiente canción..."; }
+    if(listening && key !== currentKey && localQueue.length){ var q = localQueue.shift(); playLocal(q, q.why); return; }
+    if(listening && key !== currentKey && key !== badKey){
+      currentKey = key;
+      currentSongId = n.song_id || null;
+      if(n.kind === "youtube"){
+        audio.pause();
+        startYouTube(n);
+      } else {
+        stopYouTube();
+        audio.src = n.audio_url;
+        audio.onloadedmetadata = function(){
+          try{
+            if(n.kind === "libre" && isFinite(audio.duration) && audio.duration > 10){
+              rpc("report_song_duration", {p_song_id:n.song_id, p_seconds:Math.round(audio.duration)}).catch(function(){});
+            }
+            if(n.position_seconds < (audio.duration || 1e9) - 3) audio.currentTime = n.position_seconds;
+          }catch(e){}
+          audio.play().catch(function(){ $("status").textContent = "Toca el botón para escuchar"; setPlayingUI(false); });
+        };
+        audio.load();
+      }
+    }
+    timer = setTimeout(sync, msLeft + 500);
+  }).catch(function(){
+    $("status").textContent = "Sin conexión. Reintentando...";
+    timer = setTimeout(sync, 8000);
+  });
+}
+
+$("playBtn").onclick = function(){
+  if(listening){
+    listening = false; localPlaying = false;
+    clearTimeout(timer);
+    audio.pause();
+    try{ if(ytReady && yt) yt.pauseVideo(); }catch(e){}
+    currentKey = null;
+    setPlayingUI(false);
+    $("status").textContent = "En pausa";
+  } else {
+    listening = true;
+    currentKey = null;
+    $("status").textContent = "Conectando...";
+    sync();
+  }
+};
+
+audio.addEventListener("playing", function(){ setPlayingUI(true); $("status").textContent = "Sonando ahora"; });
+audio.addEventListener("waiting", function(){ $("status").textContent = "Cargando..."; });
+audio.addEventListener("ended", trackEnded);
+audio.addEventListener("error", function(){
+  if(!listening || !audio.getAttribute("src")) return;
+  if(localPlaying){ onLocalEnded(true); return; }
+  $("status").textContent = "Esta canción no carga. Pasamos a otra.";
+  setTimeout(function(){ currentKey = null; sync(); }, 4000);
+});
+
+audio.volume = volume;
+$("vol").oninput = function(e){
+  volume = parseFloat(e.target.value);
+  audio.volume = volume;
+  try{ if(ytReady && yt) yt.setVolume(Math.round(volume*100)); }catch(err){}
+};
+
+/* ---- pedidos ---- */
+$("sendBtn").onclick = function(){
+  var song = $("reqSong").value.trim();
+  var name = $("reqName").value.trim();
+  var msg = $("reqMsg");
+  if(song.length < 2){ msg.className = "msg err"; msg.textContent = "Escribe la canción que quieres escuchar."; return; }
+  $("sendBtn").disabled = true;
+  msg.className = "msg"; msg.textContent = "El DJ está buscando tu canción...";
+  // se guarda el pedido para el panel de administrador (no bloquea)
+  api("/rest/v1/song_requests", {method:"POST", headers:{"Prefer":"return=minimal"}, body: JSON.stringify({follower_name: name || null, song_text: song})})
+    .then(function(){ lastDJ = 0; callDJ(); }).catch(function(){});
+  findSongs(song).then(function(r){
+    if(!r.length){ msg.className = "msg err"; msg.textContent = "No encontré esa canción. Prueba con otro nombre o con el artista."; return; }
+    var it = r[0]; it.alts = r.slice(1, 4); it.why = "pedido";
+    $("reqSong").value = ""; autoLeft = 3;
+    if(!listening || (!localPlaying && !$("stage").classList.contains("playing"))){
+      listening = true; playLocal(it, "pedido");
+      msg.className = "msg ok"; msg.textContent = "Suena: " + it.title;
+    } else {
+      localQueue.push(it);
+      msg.className = "msg ok"; msg.textContent = "Listo: " + it.title + ". Suena después de la canción actual.";
+    }
+  }).catch(function(){
+    msg.className = "msg err"; msg.textContent = "No se pudo buscar ahora. Intenta otra vez.";
+  }).then(function(){ $("sendBtn").disabled = false; });
+};
+
+if(location.protocol === "file:"){ $("fileWarn").style.display = "block"; }
+loadSettings();
+tickDial();
+/* ---- inicio de sesión, beneficios y tutorial ---- */
+var user = load("radioEstrellaUser", null);
+var tutoFromIntro = false, slideIdx = 0;
+function phoneTxt(){ return $("phoneLink").textContent || "0997049524"; }
+function getSlides(){ return [
+  {e:"🎵", t:"Música todo el día", p:"Radio Estrella suena sin parar. Escúchala desde tu celular, donde estés."},
+  {e:"🎤", t:"Tú pides, el DJ la pone", p:"Escribe tu canción y el DJ la busca y la pone. Después sigue con algo parecido."},
+  {e:"🎙️", t:"Mensajes de la radio", p:"Entre canciones escuchas saludos y mensajes hablados de la radio."},
+  {e:"📞", t:"Siempre cerca de ti", p:"También puedes llamarnos al " + phoneTxt() + " para pedir tu canción o tu saludo."}
+]; }
+var TUTO = [
+  ["Toca el botón dorado", "Es el botón grande con el triángulo. Así empieza a sonar la radio."],
+  ["Mira el dial", "La estrella dorada avanza mientras suena la canción. Abajo ves el título y el artista."],
+  ["Pide tu canción", "Escribe el nombre y el artista, y toca “Enviar pedido”. El DJ la busca y la pone."],
+  ["Ajusta a tu gusto", "Usa la barra del volumen. El botón ☀️ o 🌙 cambia entre día y noche."],
+  ["Deja la pantalla encendida", "En el celular, si apagas la pantalla el sonido de YouTube se puede cortar."]
+];
+function showGate(id){
+  ["gLogin","gCode","gPromo","gTuto"].forEach(function(x){ $(x).style.display = (x === id) ? "flex" : "none"; });
+  $("gate").classList.add("on"); $("gate").scrollTop = 0; document.body.style.overflow = "hidden";
+}
+function closeGate(){ $("gate").classList.remove("on"); document.body.style.overflow = ""; }
+function renderSlide(){
+  var sl = getSlides(), d = sl[slideIdx];
+  $("slide").innerHTML = "";
+  var e = document.createElement("div"); e.className = "emo"; e.textContent = d.e;
+  var h = document.createElement("h3"); h.textContent = d.t;
+  var p = document.createElement("p"); p.textContent = d.p;
+  $("slide").appendChild(e); $("slide").appendChild(h); $("slide").appendChild(p);
+  $("dots").innerHTML = "";
+  sl.forEach(function(_, i){ var b = document.createElement("i"); if(i === slideIdx) b.className = "on"; $("dots").appendChild(b); });
+  $("pNext").textContent = slideIdx === sl.length - 1 ? "Ver cómo se usa" : "Siguiente";
+}
+function startPromo(){ slideIdx = 0; renderSlide(); showGate("gPromo"); }
+function startTuto(fromIntro){
+  tutoFromIntro = fromIntro;
+  $("steps").innerHTML = "";
+  TUTO.forEach(function(t){
+    var li = document.createElement("li"), d = document.createElement("div");
+    var b = document.createElement("b"); b.textContent = t[0];
+    var sp = document.createElement("span"); sp.textContent = t[1];
+    d.appendChild(b); d.appendChild(sp); li.appendChild(d); $("steps").appendChild(li);
+  });
+  $("tGo").textContent = fromIntro ? "¡Empezar a escuchar!" : "Entendido";
+  showGate("gTuto");
+}
+function applyUser(){
+  $("userName").textContent = user ? user.name : "";
+  if(user && !$("reqName").value) $("reqName").value = user.name;
+}
+var pending = null, resendAt = 0;
+function authErr(r, j){
+  var m = String((j && (j.msg || j.error_description || j.message || j.error)) || "").toLowerCase();
+  if(r && r.status === 429 || m.indexOf("rate limit") >= 0 || m.indexOf("seconds") >= 0) return "Se pidieron muchos códigos. Espera unos minutos e intenta otra vez.";
+  if(m.indexOf("signup") >= 0 || m.indexOf("not allowed") >= 0) return "La radio todavía no tiene el registro abierto. Avísale al administrador.";
+  if(m.indexOf("expired") >= 0 || m.indexOf("invalid") >= 0) return "Ese código no es correcto o ya venció. Pide uno nuevo.";
+  return "No se pudo completar. Intenta otra vez.";
+}
+function sendCode(){
+  var name = $("lgName").value.trim(), mail = $("lgMail").value.trim().toLowerCase();
+  if(name.length < 2){ $("lgErr").textContent = "Escribe tu nombre."; return Promise.resolve(); }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)){ $("lgErr").textContent = "Escribe un correo válido."; return Promise.resolve(); }
+  $("lgErr").textContent = ""; $("lgGo").disabled = true; $("lgGo").textContent = "Enviando...";
+  pending = {name: name, email: mail};
+  return fetch(SUPABASE_URL + "/auth/v1/otp", {method:"POST",
+    headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},
+    body: JSON.stringify({email: mail, create_user: true, data: {name: name}})})
+  .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ return {r:r, j:j}; }); })
+  .then(function(x){
+    if(!x.r.ok){ $("lgErr").textContent = authErr(x.r, x.j); return; }
+    resendAt = Date.now() + 60000;
+    $("codeHelp").textContent = "Te enviamos un código a " + mail + ". Escríbelo aquí.";
+    $("lgCode").value = ""; $("cdErr").textContent = "";
+    showGate("gCode"); setTimeout(function(){ $("lgCode").focus(); }, 100);
+  }).catch(function(){ $("lgErr").textContent = "Sin conexión. Intenta otra vez."; })
+  .then(function(){ $("lgGo").disabled = false; $("lgGo").textContent = "Enviar código a mi correo"; });
+}
+function verifyCode(){
+  var code = $("lgCode").value.replace(/\s/g, "");
+  if(!pending || !/^\d{6,8}$/.test(code)){ $("cdErr").textContent = "Escribe el código que llegó a tu correo."; return; }
+  $("cdErr").textContent = ""; $("cdGo").disabled = true; $("cdGo").textContent = "Verificando...";
+  fetch(SUPABASE_URL + "/auth/v1/verify", {method:"POST",
+    headers:{"apikey":SUPABASE_KEY,"Content-Type":"application/json"},
+    body: JSON.stringify({type:"email", email: pending.email, token: code})})
+  .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ return {r:r, j:j}; }); })
+  .then(function(x){
+    if(!x.r.ok || !x.j.access_token){ $("cdErr").textContent = authErr(x.r, x.j); return; }
+    user = {name: pending.name, email: pending.email, verified: true};
+    save("radioEstrellaUser", user); pending = null;
+    applyUser(); startPromo();
+  }).catch(function(){ $("cdErr").textContent = "Sin conexión. Intenta otra vez."; })
+  .then(function(){ $("cdGo").disabled = false; $("cdGo").textContent = "Entrar"; });
+}
+$("lgGo").onclick = sendCode;
+$("lgMail").onkeydown = $("lgName").onkeydown = function(e){ if(e.key === "Enter") sendCode(); };
+$("cdGo").onclick = verifyCode;
+$("lgCode").onkeydown = function(e){ if(e.key === "Enter") verifyCode(); };
+$("cdBack").onclick = function(){ showGate("gLogin"); };
+$("cdResend").onclick = function(){
+  var w = Math.ceil((resendAt - Date.now()) / 1000);
+  if(w > 0){ $("cdErr").textContent = "Espera " + w + " segundos para pedir otro código."; return; }
+  sendCode();
+};
+$("pNext").onclick = function(){
+  if(slideIdx < getSlides().length - 1){ slideIdx++; renderSlide(); } else { startTuto(true); }
+};
+$("pSkip").onclick = function(){ startTuto(true); };
+$("tGo").onclick = function(){
+  closeGate();
+  if(tutoFromIntro && !listening){ $("playBtn").click(); }
+};
+$("helpBtn").onclick = function(){ startTuto(false); };
+$("logoutLink").onclick = function(e){
+  e.preventDefault();
+  if(listening){ $("playBtn").click(); }
+  user = null; save("radioEstrellaUser", null);
+  $("reqName").value = ""; $("lgName").value = ""; $("lgMail").value = "";
+  applyUser(); showGate("gLogin");
+};
+if(user && user.verified){ applyUser(); } else { user = null; showGate("gLogin"); }
+
+/* app instalable: copia para abrir rápido */
+if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) navigator.serviceWorker.register('sw.js').catch(function(){});
+
+</script>
+</body>
+</html>
