@@ -1,17 +1,15 @@
 {
   "name": "Radio Estrella",
   "short_name": "Radio Estrella",
-  "description": "Música todo el día. Escucha la radio y pide tu canción.",
-  "id": "./",
-  "lang": "es",
+  "description": "Música todo el día. Pide tu canción.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#0f1646",
   "theme_color": "#0f1646",
+  "lang": "es",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }

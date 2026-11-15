@@ -99,13 +99,8 @@
   .status{color:var(--muted);font-size:.95rem;min-height:1.4em}
   .vol{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:12px;color:var(--muted)}
   input[type=range]{accent-color:var(--gold);width:55%;height:28px}
-  /* el reproductor oficial se muestra completo y pequeño, sin tapar ni ocultar */
-  /* marco de pantalla retro: el reproductor se ve completo (mínimo 200 px) pero queda integrado al diseño */
-  #ytBox{display:none;margin:26px auto 0;width:100%;max-width:272px;height:224px;padding:8px;border-radius:22px;overflow:hidden;
-    background:linear-gradient(160deg,#2c3274,#12163f);border:2px solid var(--line);
-    box-shadow:0 16px 34px rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.14)}
-  #ytBox iframe{border-radius:13px}
-  #ytBox.on{display:block}
+  /* el reproductor funciona pero fuera de la pantalla: solo se ve la portada */
+  #ytBox{position:fixed;left:-400px;top:0;width:200px;height:200px;opacity:.01;pointer-events:none;overflow:hidden}
   #ytBox iframe{width:100%;height:100%;display:block}
 
   /* portada de la canción */
@@ -242,7 +237,7 @@
     <div class="hdrbtns"><button class="theme help" id="helpBtn" aria-label="Ver el tutorial">?</button><button class="theme" id="themeBtn" aria-label="Cambiar entre noche y día">☀️</button></div>
   </header>
 
-  <div class="fileWarn" id="fileWarn" role="alert">⚠️ Abriste la radio desde un archivo del computador. Así YouTube no puede sonar (error 153). Sube este archivo a un enlace https, por ejemplo con Netlify Drop, y ábrelo desde ahí.</div>
+  <div class="fileWarn" id="fileWarn" role="alert">⚠️ Abriste la radio desde un archivo del computador. Así la música no puede sonar (error 153). Sube este archivo a un enlace https, por ejemplo con Netlify Drop, y ábrelo desde ahí.</div>
 
   <div class="dial" aria-hidden="true">
     <div class="scale"></div>
@@ -294,7 +289,7 @@
     También puedes llamarnos
     <br><a class="phone" id="phoneLink" href="tel:0997049524">0997049524</a>
     <div class="credit"><span id="userName"></span> · <a href="#" id="logoutLink">Cerrar sesión</a></div>
-    <div class="credit">Música libre de Kevin MacLeod (<a href="https://incompetech.com">incompetech.com</a>), licencia CC BY 4.0.<br>Las demás canciones suenan en el reproductor oficial de YouTube.</div>
+    <div class="credit">Música libre de Kevin MacLeod (<a href="https://incompetech.com">incompetech.com</a>), licencia CC BY 4.0.</div>
     <div class="rights">
       <svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,10 61,38 91,41 68,60 75,89 50,73 25,89 32,60 9,41 39,38" fill="currentColor"/></svg>
       <p>© 2026 Luis García. Todos los derechos reservados.</p>
@@ -440,8 +435,8 @@ window.onYouTubeIframeAPIReady = function(){
         } else {
           // error de configuración (153, archivo local, red): la canción NO se apaga
           $("status").textContent = location.protocol === "file:"
-            ? "YouTube no funciona desde un archivo. Abre la radio desde un enlace https."
-            : "YouTube no pudo cargar. Reintentando en un momento...";
+            ? "La música no funciona desde un archivo. Abre la radio desde un enlace https."
+            : "No pudo cargar. Reintentando en un momento...";
         }
         badKey = currentKey; currentKey = null;
         setTimeout(sync, 8000);
@@ -451,7 +446,7 @@ window.onYouTubeIframeAPIReady = function(){
 };
 function startYouTube(n){
   $("ytBox").classList.add("on");
-  if(!ytReady){ ytPending = n; $("status").textContent = "Cargando YouTube..."; return; }
+  if(!ytReady){ ytPending = n; $("status").textContent = "Cargando..."; return; }
   yt.loadVideoById({videoId:n.youtube_video_id, startSeconds:n.position_seconds || 0});
   yt.setVolume(Math.round(volume*100));
 }
@@ -505,6 +500,79 @@ function callDJ(){
 // el cerebro trabaja mientras la cancion suena: cada 30 s prepara las siguientes
 setInterval(function(){ if(listening) callDJ(); }, 30000);
 
+/* ---- DJ: efectos al cambiar de canción, solo en horario de fiesta ---- */
+var DROP_FROM = 20, DROP_TO = 2;   // de 8 pm a 2 am, hora de Ecuador (cámbialos aquí)
+var DROP_EVERY = 3;                // más o menos 1 de cada 3 canciones
+var DROP_PHRASES = ["¡Y sigue la fiesta!", "¡Radio Estrella, la rumba no para!", "¡Dale, dale, que sigue la fiesta!", "¡Esto es Radio Estrella!"];
+var actx = null;
+function ecHour(){
+  try{ return parseInt(new Intl.DateTimeFormat("en-US", {timeZone:"America/Guayaquil", hour:"numeric", hour12:false}).format(new Date()), 10) % 24; }
+  catch(e){ return new Date().getHours(); }
+}
+function inDropHours(){ var h = ecHour(); return DROP_FROM <= DROP_TO ? (h >= DROP_FROM && h < DROP_TO) : (h >= DROP_FROM || h < DROP_TO); }
+function hashKey(t){ var h = 0; for(var i = 0; i < t.length; i++){ h = (h * 31 + t.charCodeAt(i)) | 0; } return Math.abs(h); }
+function actxGet(){
+  try{
+    if(!actx){ actx = new (window.AudioContext || window.webkitAudioContext)(); }
+    if(actx.state === "suspended") actx.resume();
+    return actx;
+  }catch(e){ return null; }
+}
+function fxSweep(c, t0){          // subida de ruido, como los DJ antes del golpe
+  var len = Math.floor(c.sampleRate * 1.1), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+  for(var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  var src = c.createBufferSource(); src.buffer = buf;
+  var f = c.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 3;
+  f.frequency.setValueAtTime(300, t0); f.frequency.exponentialRampToValueAtTime(5000, t0 + 1.0);
+  var g = c.createGain(); g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.5, t0 + 0.9); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.1);
+  src.connect(f); f.connect(g); g.connect(c.destination); src.start(t0); src.stop(t0 + 1.1);
+}
+function fxHit(c, t0){            // golpe grave
+  var o = c.createOscillator(), g = c.createGain(); o.type = "sine";
+  o.frequency.setValueAtTime(140, t0); o.frequency.exponentialRampToValueAtTime(40, t0 + 0.35);
+  g.gain.setValueAtTime(0.6, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.4);
+  o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + 0.42);
+}
+function fxHorn(c, t0){           // corneta de DJ (dos pitidos)
+  [440, 554, 659].forEach(function(fr){
+    [0, 0.38].forEach(function(off){
+      var o = c.createOscillator(), g = c.createGain(); o.type = "sawtooth";
+      o.frequency.setValueAtTime(fr, t0 + off); o.frequency.exponentialRampToValueAtTime(fr * 0.97, t0 + off + 0.3);
+      g.gain.setValueAtTime(0.0001, t0 + off); g.gain.exponentialRampToValueAtTime(0.12, t0 + off + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + off + 0.32);
+      o.connect(g); g.connect(c.destination); o.start(t0 + off); o.stop(t0 + off + 0.34);
+    });
+  });
+}
+function djSay(text){
+  try{
+    if(!window.speechSynthesis) return;
+    var vs = speechSynthesis.getVoices().filter(function(v){ return /^es/i.test(v.lang); });
+    var u = new SpeechSynthesisUtterance(text);
+    if(vs.length){ u.voice = vs[0]; u.lang = vs[0].lang; } else { u.lang = "es-ES"; }
+    u.rate = 1.05; u.pitch = 0.7; u.volume = Math.min(1, volume + 0.2);
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }catch(e){}
+}
+function duck(on){                // baja la música un momento para que se oiga el DJ
+  try{ if(ytReady && yt) yt.setVolume(Math.round(volume * 100 * (on ? 0.35 : 1))); }catch(e){}
+  audio.volume = on ? volume * 0.35 : volume;
+}
+function djDrop(key){
+  if(!listening || !inDropHours()) return;
+  var h = hashKey(key);                       // la misma decisión para todos los oyentes
+  if(h % DROP_EVERY !== 0) return;
+  var c = actxGet(); if(!c) return;
+  var t0 = c.currentTime + 0.05, kind = Math.floor(h / DROP_EVERY) % 3;
+  duck(true);
+  if(kind === 1){ fxHorn(c, t0); } else { fxSweep(c, t0); fxHit(c, t0 + 1.0); }
+  var phrase = DROP_PHRASES[Math.floor(h / 7) % DROP_PHRASES.length];
+  setTimeout(function(){ djSay(phrase); }, kind === 1 ? 700 : 900);
+  setTimeout(function(){ duck(false); }, 3800);
+}
+try{ if(window.speechSynthesis) speechSynthesis.getVoices(); }catch(e){}
+
 function sync(){
   clearTimeout(timer);
   fetchNow().then(function(n){
@@ -522,6 +590,7 @@ function sync(){
     if(listening && key !== currentKey && key !== badKey){
       currentKey = key;
       currentSongId = n.song_id || null;
+      if(n.kind !== "voz" && n.source !== "voz" && (n.position_seconds || 0) < 8) djDrop(key);
       if(n.kind === "youtube"){
         audio.pause();
         startYouTube(n);
@@ -558,6 +627,7 @@ $("playBtn").onclick = function(){
     $("status").textContent = "En pausa. Al volver entras en vivo, justo donde va la radio.";
   } else {
     listening = true;
+    actxGet();
     currentKey = null;
     $("status").textContent = "Conectando...";
     sync();
@@ -617,7 +687,7 @@ var TUTO = [
   ["Mira el dial", "La estrella dorada avanza mientras suena la canción. Abajo ves el título y el artista."],
   ["Pide tu canción", "Escribe el nombre y el artista, y toca “Enviar pedido”. El DJ la pone en la radio cuando le toque."],
   ["Ajusta a tu gusto", "Usa la barra del volumen. El botón ☀️ o 🌙 cambia entre día y noche."],
-  ["Deja la pantalla encendida", "En el celular, si apagas la pantalla el sonido de YouTube se puede cortar."]
+  ["Deja la pantalla encendida", "En el celular, si apagas la pantalla el sonido se puede cortar."]
 ];
 function showGate(id){
   ["gLogin","gCode","gPromo","gTuto"].forEach(function(x){ $(x).style.display = (x === id) ? "flex" : "none"; });
