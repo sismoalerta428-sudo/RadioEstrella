@@ -478,7 +478,7 @@ function setCover(n){
   }
 }
 
-var STYLE_TXT = {salsa:"Salsa", rumba:"Rumba", urbano:"Urbano", pop_latino:"Pop latino", romantica:"Románticas", rock:"Rock", regional:"Regional", folclor:"Folclor", pop:"Pop", vallenato:"Vallenato", pop_espanol:"Pop en español", pop_ingles:"Pop en inglés", reggaeton:"Reggaetón", fiesta:"Fiesta"};
+var STYLE_TXT = {salsa:"Salsa", rumba:"Rumba", urbano:"Urbano", pop_latino:"Pop latino", romantica:"Románticas", rock:"Rock", regional:"Regional", folclor:"Folclor", pop:"Pop", vallenato:"Vallenato", pop_espanol:"Pop en español", pop_ingles:"Pop en inglés", reggaeton:"Reggaetón", rap:"Rap y trap", fiesta:"Fiesta"};
 function showSong(n){
   setCover(n);
   $("title").textContent = n.title;
@@ -596,6 +596,15 @@ function djDrop(key){
   setTimeout(function(){ djSay(phrase); }, kind === 1 ? 700 : (kind === 3 ? 800 : 900));
   setTimeout(function(){ duck(false); }, 3800);
 }
+// antes de un mensaje del DJ (voz): zumbidos de fiesta y luego habla
+function djIntro(key){
+  var c = actxGet(); if(!c) return 0;
+  var h = hashKey(key), t0 = c.currentTime + 0.05;
+  duck(true);
+  if(h % 2) { fxHorn(c, t0); } else { fxZap(c, t0); fxSweep(c, t0 + 0.7); fxHit(c, t0 + 1.7); }
+  setTimeout(function(){ duck(false); }, 3000);
+  return (h % 2) ? 1400 : 2300;
+}
 try{ if(window.speechSynthesis) speechSynthesis.getVoices(); }catch(e){}
 
 function sync(){
@@ -615,7 +624,9 @@ function sync(){
     if(listening && key !== currentKey && key !== badKey){
       currentKey = key;
       currentSongId = n.song_id || null;
+      var introMs = 0;
       if(n.kind !== "voz" && n.source !== "voz" && (n.position_seconds || 0) < 8) djDrop(key);
+      else if((n.kind === "voz" || n.source === "voz") && (n.position_seconds || 0) < 8) introMs = djIntro(key);
       if(n.kind === "youtube"){
         audio.pause();
         startYouTube(n);
@@ -629,7 +640,8 @@ function sync(){
             }
             if(n.position_seconds < (audio.duration || 1e9) - 3) audio.currentTime = n.position_seconds;
           }catch(e){}
-          audio.play().catch(function(){ $("status").textContent = "Toca el botón para escuchar"; setPlayingUI(false); });
+          var go = function(){ audio.play().catch(function(){ $("status").textContent = "Toca el botón para escuchar"; setPlayingUI(false); }); };
+          if(introMs){ setTimeout(function(){ if(currentKey === key) go(); }, introMs); } else { go(); }
         };
         audio.load();
       }
