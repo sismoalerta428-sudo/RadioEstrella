@@ -30,3 +30,17 @@ Entra al archivo en GitHub → ✏️ *Edit* → pega el contenido nuevo → *Co
 
 ## Música y créditos
 - Música libre de respaldo: Kevin MacLeod (incompetech.com), licencia CC BY 4.0.
+
+## ¿Prefieres Cloudflare Pages? (el enlace no cambia)
+1. En Cloudflare entra a **Workers & Pages** y crea una aplicación **Pages**.
+2. Elige **Connect to Git** y selecciona tu repositorio `radio-estrella`.
+3. Sin comando de compilación y con carpeta de salida `/`. Guarda y despliega.
+4. Tu enlace principal será `nombre-del-proyecto.pages.dev` y **no cambia**: cada cambio que subas a GitHub lo actualiza.
+   - Si subes los archivos arrastrándolos (sin GitHub), entra siempre al **mismo proyecto** y elige **Create a new deployment**. No crees un proyecto nuevo cada vez.
+   - Para un enlace propio y permanente, conecta un dominio en la sección *Custom domains*.
+
+## Qué hace el cerebro (en Supabase)
+- Mezcla los estilos poco a poco: se queda 2-3 canciones y luego pasa a un estilo vecino durante 6 canciones.
+- Una canción pedida define el ambiente: después suenan canciones parecidas.
+- Una canción no suena más de 2 veces en 24 horas.
+- Efectos de DJ (todo el día; para solo de noche pon DROP_FROM=20 y DROP_TO=2): se cambian en `index.html` (`DROP_FROM`, `DROP_TO`, `DROP_EVERY`).
