@@ -40,7 +40,8 @@ Entra al archivo en GitHub → ✏️ *Edit* → pega el contenido nuevo → *Co
    - Para un enlace propio y permanente, conecta un dominio en la sección *Custom domains*.
 
 ## Qué hace el cerebro (en Supabase)
+- La radio avanza sola, 24 horas, aunque no haya oyentes (tareas programadas en Supabase). Al abrirla entras en el punto real de la canción.
 - Mezcla los estilos poco a poco: se queda 2-3 canciones y luego pasa a un estilo vecino durante 6 canciones.
 - Una canción pedida define el ambiente: después suenan canciones parecidas.
 - Una canción no suena más de 2 veces en 24 horas.
-- Efectos de DJ (todo el día; para solo de noche pon DROP_FROM=20 y DROP_TO=2): se cambian en `index.html` (`DROP_FROM`, `DROP_TO`, `DROP_EVERY`).
+- Efectos de DJ (horario de fiesta): se cambian en `index.html` (`DROP_FROM`, `DROP_TO`, `DROP_EVERY`).
