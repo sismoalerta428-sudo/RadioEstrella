@@ -77,7 +77,9 @@
   @keyframes ping{70%{box-shadow:0 0 0 9px rgba(230,58,70,0)}100%{box-shadow:0 0 0 0 rgba(230,58,70,0)}}
   .title{font-family:var(--display);font-weight:700;font-size:clamp(1.35rem,6.4vw,1.85rem);line-height:1.15;margin:16px 4px 6px;word-break:break-word;text-wrap:balance}
   .artist{color:var(--muted);font-size:1.05rem;min-height:1.4em}
-  .source{margin-top:12px;min-height:34px}
+  .source{margin-top:12px;min-height:34px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .chip.mix{border-color:var(--gold);color:var(--gold)}
+  body.day .chip.mix{color:var(--blue);border-color:var(--blue)}
 
   .playwrap{position:relative;width:172px;height:172px;margin:22px auto 10px;display:grid;place-items:center}
   .ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--gold);opacity:0}
@@ -476,15 +478,26 @@ function setCover(n){
   }
 }
 
+var STYLE_TXT = {salsa:"Salsa", rumba:"Rumba", urbano:"Urbano", pop_latino:"Pop latino", romantica:"Románticas", rock:"Rock", regional:"Regional", folclor:"Folclor", pop:"Pop", vallenato:"Vallenato", pop_espanol:"Pop en español", pop_ingles:"Pop en inglés", reggaeton:"Reggaetón", rap:"Rap y trap", fiesta:"Fiesta"};
 function showSong(n){
   setCover(n);
   $("title").textContent = n.title;
   $("artist").textContent = n.artist || "";
   $("srcWrap").innerHTML = "";
-  if(SOURCE_TXT[n.source]){
+  if(n.voice_kind === "anuncio"){
+    var ad = document.createElement("span"); ad.className = "chip mix";
+    ad.textContent = "📢 Publicidad" + (n.client ? " · " + n.client : "");
+    $("srcWrap").appendChild(ad);
+  } else if(SOURCE_TXT[n.source]){
     var s = document.createElement("span"); s.className = "chip"; s.textContent = SOURCE_TXT[n.source];
     $("srcWrap").appendChild(s);
   }
+  if(n.kind === "youtube" && STYLE_TXT[n.style]){
+    var m = document.createElement("span"); m.className = "chip mix";
+    m.textContent = "🎧 " + STYLE_TXT[n.style] + (n.to_style && STYLE_TXT[n.to_style] && n.to_style !== n.style ? " → " + STYLE_TXT[n.to_style] : "");
+    $("srcWrap").appendChild(m);
+  }
+  
   var off = new Date(n.server_time).getTime() - Date.now();
   track = {startMs: new Date(n.started_at).getTime() - off, endMs: new Date(n.ends_at).getTime() - off};
   tickDial();
@@ -509,15 +522,14 @@ setInterval(function(){
 }, 15000);
 
 /* ---- DJ: efectos al cambiar de canción, solo en horario de fiesta ---- */
-var DROP_FROM = 20, DROP_TO = 2;   // de 8 pm a 2 am, hora de Ecuador (cámbialos aquí)
-var DROP_EVERY = 3;                // más o menos 1 de cada 3 canciones
-var DROP_PHRASES = ["¡Y sigue la fiesta!", "¡Radio Estrella, la rumba no para!", "¡Dale, dale, que sigue la fiesta!", "¡Esto es Radio Estrella!"];
+var DROP_FROM = 0, DROP_TO = 24;   // todo el día (para solo de noche: 20 y 2). Hora de Ecuador
+var DROP_EVERY = 2;                // más o menos 1 de cada 2 canciones (1 = en todas)
 var actx = null;
 function ecHour(){
   try{ return parseInt(new Intl.DateTimeFormat("en-US", {timeZone:"America/Guayaquil", hour:"numeric", hour12:false}).format(new Date()), 10) % 24; }
   catch(e){ return new Date().getHours(); }
 }
-function inDropHours(){ var h = ecHour(); return DROP_FROM <= DROP_TO ? (h >= DROP_FROM && h < DROP_TO) : (h >= DROP_FROM || h < DROP_TO); }
+function inDropHours(){ var h = ecHour(); return DROP_FROM === 0 && DROP_TO === 24 ? true : DROP_FROM <= DROP_TO ? (h >= DROP_FROM && h < DROP_TO) : (h >= DROP_FROM || h < DROP_TO); }
 function hashKey(t){ var h = 0; for(var i = 0; i < t.length; i++){ h = (h * 31 + t.charCodeAt(i)) | 0; } return Math.abs(h); }
 function actxGet(){
   try{
@@ -553,14 +565,27 @@ function fxHorn(c, t0){           // corneta de DJ (dos pitidos)
     });
   });
 }
-function djSay(text){
+function fxZap(c, t0){            // láser / sirena de pista de baile
+  [0, 0.22, 0.44].forEach(function(off){
+    var o = c.createOscillator(), g = c.createGain(); o.type = "square";
+    o.frequency.setValueAtTime(1800, t0 + off); o.frequency.exponentialRampToValueAtTime(200, t0 + off + 0.2);
+    g.gain.setValueAtTime(0.09, t0 + off); g.gain.exponentialRampToValueAtTime(0.0001, t0 + off + 0.21);
+    o.connect(g); g.connect(c.destination); o.start(t0 + off); o.stop(t0 + off + 0.22);
+  });
+}
+var phrases = [];   // frases grabadas por una voz real (se suben en el panel)
+function loadPhrases(){
+  api("/rest/v1/dj_clips?select=audio_url&kind=eq.frase&is_active=eq.true&limit=40")
+    .then(function(r){ return r.json(); })
+    .then(function(rows){ if(Array.isArray(rows)) phrases = rows.map(function(x){ return x.audio_url; }); })
+    .catch(function(){});
+}
+function djSay(h){
+  if(!phrases.length) return;
   try{
-    if(!window.speechSynthesis) return;
-    var vs = speechSynthesis.getVoices().filter(function(v){ return /^es/i.test(v.lang); });
-    var u = new SpeechSynthesisUtterance(text);
-    if(vs.length){ u.voice = vs[0]; u.lang = vs[0].lang; } else { u.lang = "es-ES"; }
-    u.rate = 1.05; u.pitch = 0.7; u.volume = Math.min(1, volume + 0.2);
-    speechSynthesis.cancel(); speechSynthesis.speak(u);
+    var a = new Audio(phrases[h % phrases.length]);
+    a.volume = Math.min(1, volume + 0.2);
+    a.play().catch(function(){});
   }catch(e){}
 }
 function duck(on){                // baja la música un momento para que se oiga el DJ
@@ -572,14 +597,22 @@ function djDrop(key){
   var h = hashKey(key);                       // la misma decisión para todos los oyentes
   if(h % DROP_EVERY !== 0) return;
   var c = actxGet(); if(!c) return;
-  var t0 = c.currentTime + 0.05, kind = Math.floor(h / DROP_EVERY) % 3;
+  var t0 = c.currentTime + 0.05, kind = Math.floor(h / DROP_EVERY) % 4;
   duck(true);
-  if(kind === 1){ fxHorn(c, t0); } else { fxSweep(c, t0); fxHit(c, t0 + 1.0); }
-  var phrase = DROP_PHRASES[Math.floor(h / 7) % DROP_PHRASES.length];
-  setTimeout(function(){ djSay(phrase); }, kind === 1 ? 700 : 900);
+  if(kind === 1){ fxHorn(c, t0); } else if(kind === 3){ fxZap(c, t0); fxHit(c, t0 + 0.7); } else { fxSweep(c, t0); fxHit(c, t0 + 1.0); }
+    setTimeout(function(){ djSay(Math.floor(h / 7)); }, kind === 1 ? 700 : (kind === 3 ? 800 : 900));
   setTimeout(function(){ duck(false); }, 3800);
 }
-try{ if(window.speechSynthesis) speechSynthesis.getVoices(); }catch(e){}
+// antes de un mensaje del DJ (voz): zumbidos de fiesta y luego habla
+function djIntro(key){
+  var c = actxGet(); if(!c) return 0;
+  var h = hashKey(key), t0 = c.currentTime + 0.05;
+  duck(true);
+  if(h % 2) { fxHorn(c, t0); } else { fxZap(c, t0); fxSweep(c, t0 + 0.7); fxHit(c, t0 + 1.7); }
+  setTimeout(function(){ duck(false); }, 3000);
+  return (h % 2) ? 1400 : 2300;
+}
+loadPhrases();
 
 function sync(){
   clearTimeout(timer);
@@ -598,7 +631,9 @@ function sync(){
     if(listening && key !== currentKey && key !== badKey){
       currentKey = key;
       currentSongId = n.song_id || null;
+      var introMs = 0;
       if(n.kind !== "voz" && n.source !== "voz" && (n.position_seconds || 0) < 8) djDrop(key);
+      else if((n.kind === "voz" || n.source === "voz") && (n.position_seconds || 0) < 8) introMs = djIntro(key);
       if(n.kind === "youtube"){
         audio.pause();
         startYouTube(n);
@@ -612,7 +647,8 @@ function sync(){
             }
             if(n.position_seconds < (audio.duration || 1e9) - 3) audio.currentTime = n.position_seconds;
           }catch(e){}
-          audio.play().catch(function(){ $("status").textContent = "Toca el botón para escuchar"; setPlayingUI(false); });
+          var go = function(){ audio.play().catch(function(){ $("status").textContent = "Toca el botón para escuchar"; setPlayingUI(false); }); };
+          if(introMs){ setTimeout(function(){ if(currentKey === key) go(); }, introMs); } else { go(); }
         };
         audio.load();
       }
